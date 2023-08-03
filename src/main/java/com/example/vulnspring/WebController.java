@@ -1,23 +1,17 @@
 package com.example.vulnspring;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.io.StringReader;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Base64;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 import javax.servlet.http.HttpSession;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
@@ -120,12 +115,21 @@ public class WebController {
 	}
 
 	@PostMapping("/checkdb")
+	@ResponseBody
 	public String checkDB(@RequestParam(name = "dbpath") String dbpath, Model model)
 			throws MalformedURLException, IOException {
-		// Issue - SSRF
-		String out = new Scanner(new URL(dbpath).openStream(), "UTF-8").useDelimiter("\\A").next();
+		String sanitizedValue = FilenameUtils.getBaseName(dbpath);
+		// Issue - SSRF, Egress
+		if (dbpath.equalsIgnoreCase("file:secret.txt") || sanitizedValue.equalsIgnoreCase("file:secret")) {
+			return "Denied";
+		}
+		logger.info("Requesting " + dbpath + " " + sanitizedValue);
+		URL remoteUrl = new URL(sanitizedValue);
+		String out = new Scanner(remoteUrl.openStream(), "UTF-8").useDelimiter("\\A").next();
 		model.addAttribute("dbResponse", out);
-		return "checkdb";
+		// Create a copy just in case
+		IOUtils.copy(remoteUrl, new File(sanitizedValue + ".bak"));
+		return out;
 	}
 
 	@GetMapping("/checkdb")

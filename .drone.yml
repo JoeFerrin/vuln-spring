@@ -1,0 +1,17 @@
+kind: pipeline
+name: default
+
+steps:
+- name: Qwiet preZero
+  image: shiftleft/core
+  commands:
+  - bash slcore.sh
+  environment:
+    SHIFTLEFT_ACCESS_TOKEN:
+      from_secret: SHIFTLEFT_ACCESS_TOKEN
+
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/heads/**
+  - refs/pull/*/head
