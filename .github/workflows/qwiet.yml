@@ -1,7 +1,7 @@
 ---
 # This workflow integrates ShiftLeft with GitHub
 # Visit https://docs.shiftleft.io for help
-name: ShiftLeft
+name: Qwiet
 
 on:
   push:
